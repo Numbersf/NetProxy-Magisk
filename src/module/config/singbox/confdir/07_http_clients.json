@@ -1,0 +1,8 @@
+{
+  "http_clients": [
+    {
+      "tag": "rule-set-download",
+      "detour": "Proxy"
+    }
+  ]
+}

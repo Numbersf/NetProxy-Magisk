@@ -1,6 +1,7 @@
 {
   "route": {
     "default_domain_resolver": "ali",
+    "default_http_client": "rule-set-download",
     "rule_set": [
       {
         "tag": "block",
@@ -25,7 +26,6 @@
         "type": "remote",
         "format": "source",
         "url": "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Singbox.json",
-        "download_detour": "Proxy",
         "update_interval": "24h",
         "path": "./source/AWAvenue.json"
       },
@@ -34,7 +34,6 @@
         "type": "remote",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/CHIZI-0618/v2ray-rules-dat/release/singbox_rule_set/geosite-category-ads-all.srs",
-        "download_detour": "Proxy",
         "update_interval": "24h",
         "path": "./source/category-ads-all.srs"
       },
@@ -43,7 +42,6 @@
         "type": "remote",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-alibaba.srs",
-        "download_detour": "Proxy",
         "update_interval": "24h",
         "path": "./source/alibaba.srs"
       },
@@ -52,7 +50,6 @@
         "type": "remote",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-games@cn.srs",
-        "download_detour": "Proxy",
         "update_interval": "24h",
         "path": "./source/category-games@cn.srs"
       },
@@ -61,7 +58,6 @@
         "type": "remote",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/CHIZI-0618/v2ray-rules-dat/release/singbox_rule_set/geosite-cn.srs",
-        "download_detour": "Proxy",
         "update_interval": "24h",
         "path": "./source/cn.srs"
       },
@@ -70,7 +66,6 @@
         "type": "remote",
         "format": "binary",
         "url": "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/cn.srs",
-        "download_detour": "Proxy",
         "update_interval": "10d",
         "path": "./source/cn-ip.srs"
       }

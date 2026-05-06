@@ -80,7 +80,6 @@
         "server": "remote"
       }
     ],
-    "independent_cache": true,
     "strategy": "ipv4_only"
   }
 }
