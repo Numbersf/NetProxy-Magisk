@@ -107,6 +107,7 @@ module_mode_to_clash_mode() {
     rule) printf "%s" "Rule" ;;
     global) printf "%s" "Global" ;;
     direct) printf "%s" "Direct" ;;
+    AllowAds) printf "%s" "AllowAds" ;;
     *) return 1 ;;
   esac
 }
