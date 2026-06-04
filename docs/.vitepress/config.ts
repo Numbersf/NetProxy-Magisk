@@ -24,6 +24,8 @@ export default defineConfig({
     nav: [
       { text: '指南', link: '/guide/introduction' },
       { text: '配置参考', link: '/config/module' },
+      { text: 'N', link: '/tools/monet' },
+      { text: '祈愿', link: '/tools/gacha' },
       { text: 'GitHub', link: 'https://github.com/Fanju6/NetProxy-Magisk' }
     ],
 
