@@ -279,13 +279,10 @@ refresh_subscription_dir() {
   # 登记到兜底清理列表
   SUB_TMP_DIRS="$SUB_TMP_DIRS $tmp_dir"
 
-  # 设置请求参数供 import_sub -> run_proxylink 读取
-  SUB_UA="$ua"
-  SUB_HWID="$hwid_val"
-
   # 先拉取到临时目录，失败则保留旧节点
+  # UA/HWID 仅在子 shell 内生效，避免污染全局 (update-all 跨订阅复用)
   ensure_dir "$tmp_dir" "无法创建临时目录: $tmp_dir"
-  if ! ( import_sub "$url" "$tmp_dir" ); then
+  if ! ( SUB_UA="$ua"; SUB_HWID="$hwid_val"; import_sub "$url" "$tmp_dir" ); then
     log "ERROR" "订阅拉取失败，保留旧节点: $name"
     rm -rf "$tmp_dir"
     return 1
@@ -298,6 +295,35 @@ refresh_subscription_dir() {
 
   # 更新订阅元数据
   write_subscription_meta "$sub_dir" "$name" "$url" "$ua" "$hwid_val"
+}
+
+#######################################
+# 从订阅目录的元数据读取信息并刷新该订阅
+# 读取 name/url 及历史 ua/hwid，命令行 SUB_UA/SUB_HWID 优先。
+# 参数:
+#   $1  订阅目录
+# 返回: 刷新成功返回 0；元数据缺失或拉取失败返回 1
+#######################################
+refresh_subscription_from_meta() {
+  local sub_dir="$1"
+  local meta_file="$sub_dir/_meta.json"
+  local name url saved_ua saved_hwid use_ua use_hwid
+
+  # 元数据缺失则跳过该订阅
+  [ -f "$meta_file" ] || return 1
+
+  name="$(read_subscription_meta_value "$meta_file" "name" || true)"
+  url="$(read_subscription_meta_value "$meta_file" "url" || true)"
+  [ -n "$url" ] || return 1
+  [ -n "$name" ] || name="${sub_dir##*/}"
+
+  # 命令行参数优先，缺省时回退到各订阅持久化值
+  saved_ua="$(read_subscription_meta_value "$meta_file" "ua" || true)"
+  saved_hwid="$(read_subscription_meta_value "$meta_file" "hwid" || true)"
+  use_ua="${SUB_UA:-$saved_ua}"
+  use_hwid="${SUB_HWID:-$saved_hwid}"
+
+  refresh_subscription_dir "$name" "$url" "$sub_dir" "$use_ua" "$use_hwid"
 }
 
 #######################################
@@ -337,61 +363,42 @@ add_subscription() {
 #######################################
 update_subscription() {
   local name="$1"
-  local sub_dir meta_file url saved_name saved_ua saved_hwid
+  local sub_dir
 
   [ -n "$name" ] || die "用法: $(basename "$0") update <名称> [-ua <UA>] [-hwid <HWID>]"
 
   sub_dir="$(subscription_dir_from_name "$OUTBOUNDS_DIR" "$name")"
-  meta_file="$sub_dir/_meta.json"
+  require_file "$sub_dir/_meta.json" "订阅不存在: $name"
 
-  # 从元数据读取订阅链接与历史请求参数
-  require_file "$meta_file" "订阅不存在: $name"
-  saved_name="$(read_subscription_meta_value "$meta_file" "name" || true)"
-  url="$(read_subscription_meta_value "$meta_file" "url" || true)"
-  saved_ua="$(read_subscription_meta_value "$meta_file" "ua" || true)"
-  saved_hwid="$(read_subscription_meta_value "$meta_file" "hwid" || true)"
-
-  [ -n "$url" ] || die "无法读取订阅链接: $meta_file"
-  [ -n "$saved_name" ] || saved_name="$name"
-
-  # 命令行参数优先，缺省时回退到持久化值
-  [ -n "$SUB_UA" ] || SUB_UA="$saved_ua"
-  [ -n "$SUB_HWID" ] || SUB_HWID="$saved_hwid"
-
-  refresh_subscription_dir "$saved_name" "$url" "$sub_dir" "$SUB_UA" "$SUB_HWID"
-  log "INFO" "订阅更新完成: $saved_name"
+  refresh_subscription_from_meta "$sub_dir" || die "订阅更新失败: $name"
+  log "INFO" "订阅更新完成: $name"
 }
 
 #######################################
 # 更新全部订阅
+# 单个订阅失败时记 WARN 并跳过，继续更新其余订阅。
 # 参数: 无
-# 返回: 无 (逐个更新所有订阅目录)
+# 返回: 无 (汇总成功/失败数)
 #######################################
 update_all_subscriptions() {
-  local sub_dir meta_file name url saved_ua saved_hwid count=0
+  local sub_dir name ok=0 failed=0
 
   # 遍历所有订阅目录
   for sub_dir in "$OUTBOUNDS_DIR"/sub_*; do
     [ -d "$sub_dir" ] || continue
-    meta_file="$sub_dir/_meta.json"
-    [ -f "$meta_file" ] || continue
+    [ -f "$sub_dir/_meta.json" ] || continue
 
-    name="$(read_subscription_meta_value "$meta_file" "name" || true)"
-    url="$(read_subscription_meta_value "$meta_file" "url" || true)"
-    [ -n "$url" ] || continue
-    [ -n "$name" ] || name="${sub_dir##*/}"
-
-    # 命令行参数优先，否则使用各订阅各自的持久化值
-    saved_ua="$(read_subscription_meta_value "$meta_file" "ua" || true)"
-    saved_hwid="$(read_subscription_meta_value "$meta_file" "hwid" || true)"
-    local use_ua="${SUB_UA:-$saved_ua}"
-    local use_hwid="${SUB_HWID:-$saved_hwid}"
-
-    refresh_subscription_dir "$name" "$url" "$sub_dir" "$use_ua" "$use_hwid"
-    count=$((count + 1))
+    name="${sub_dir##*/}"
+    # 容错：单订阅失败不中断整体
+    if refresh_subscription_from_meta "$sub_dir"; then
+      ok=$((ok + 1))
+    else
+      failed=$((failed + 1))
+      log "WARN" "订阅更新失败，已跳过: $name"
+    fi
   done
 
-  log "INFO" "全部订阅更新完成，共 $count 个"
+  log "INFO" "全部订阅更新完成，成功 $ok 个，失败 $failed 个"
 }
 
 #######################################
