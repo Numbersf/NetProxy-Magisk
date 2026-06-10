@@ -62,6 +62,6 @@ runs:
         # 完整包（全部组件）
         7z a -tzip -mx=9 "../../$FULL_NAME" .
         # 精简包（排除 IPSET 驱动，适用于内核已内置 IPSET 的设备）
-        7z a -tzip -mx=9 "../../$LITE_NAME" . -x!"bin/IPSET-LKM/*" -x!"bin/ipset"
+        7z a -tzip -mx=9 "../../$LITE_NAME" . -x!"bin/IPSET-LKM/*"
         # 纯脚本包（排除所有二进制文件）
-        7z a -tzip -mx=9 "../../$MINI_NAME" . -x!"bin/sing-box" -x!"bin/proxylink" -x!"bin/ipset" -x!"bin/IPSET-LKM/*" -x!"bin/zashboard/*"
+        7z a -tzip -mx=9 "../../$MINI_NAME" . -x!"bin/sing-box" -x!"bin/proxylink" -x!"bin/IPSET-LKM/*" -x!"bin/zashboard/*"
